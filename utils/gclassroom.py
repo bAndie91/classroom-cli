@@ -9,14 +9,16 @@ from apiclient.http import BatchHttpRequest
 from . import color, logger
 Color = color.Color()
 Logger = logger.Logger()
+import os
 
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
-    'https://www.googleapis.com/auth/classroom.rosters',
+    'https://www.googleapis.com/auth/classroom.course-work.readonly',
+    'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
+    'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
+    'https://www.googleapis.com/auth/classroom.announcements.readonly',
     'https://www.googleapis.com/auth/classroom.rosters.readonly',
-    'https://www.googleapis.com/auth/classroom.profile.emails',
-    'https://www.googleapis.com/auth/classroom.profile.photos',
-    'https://www.googleapis.com/auth/classroom.coursework.me'
+    'https://www.googleapis.com/auth/classroom.topics.readonly'
 ]
 
 
@@ -143,7 +145,7 @@ class Classroom:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
+                    os.environ['GOOGLE_APIS_CREDENTIALS_JSON_FILE'], SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open('token.pickle', 'wb') as token:
