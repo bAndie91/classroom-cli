@@ -19,5 +19,6 @@ for curse in curses:
 	announcements = Classroom.service.courses().announcements().list(courseId=curse['id']).execute().get('announcements')
 	for announ in announcements:
 		datetime_info = '\t'.join([announ['creationTime'], announ['updateTime'] if announ['updateTime'] != announ['creationTime'] else ''])
+		print(indent(datetime_info))
 		text = announ['text']
-		print(indent('\n'.join([datetime_info, text])))
+		print(indent(indent(text)))
