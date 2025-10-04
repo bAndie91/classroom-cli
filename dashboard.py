@@ -38,6 +38,10 @@ for curse in curses:
 			if 'driveFile' in material and 'driveFile' in material['driveFile']:
 				driveFile = material['driveFile']['driveFile']
 				print(f"Attachment: {driveFile['title']} <{driveFile['alternateLink']}>")
+			elif 'link' in material:
+				link = material['link']
+				# f" thumbnail=<{link['thumbnailUrl']}>"
+				print(f"Attachment: {link['title']} <{link['url']}>")
 			else:
 				print(f"Attachment-JSON: {json.dumps(material)}")
 		print()
