@@ -18,18 +18,18 @@ def firstOrNone(iterable):
 Classroom = gclassroom.Classroom()
 Classroom.initialize()
 
-curses_object = Classroom.service.courses()
-curses = curses_object.list(pageSize=100).execute().get('courses')
+courses_object = Classroom.service.courses()
+courses = courses_object.list(pageSize=100).execute().get('courses')
 
-for curse in curses:
-	announcements = curses_object.announcements().list(courseId=curse['id']).execute().get('announcements')
-	teachers = curses_object.teachers().list(courseId=curse['id']).execute().get('teachers')
+for course in courses:
+	announcements = courses_object.announcements().list(courseId=course['id']).execute().get('announcements')
+	teachers = courses_object.teachers().list(courseId=course['id']).execute().get('teachers')
 	
 	for announ in reversed(announcements):
 		creator_teacher = firstOrNone([teacher['profile']['name']['fullName'] for teacher in teachers if teacher['userId'] == announ['creatorUserId']])
 		if creator_teacher is not None:
 			print(f"From: {creator_teacher}")
-		print(f"Curse: {curse['name']}")
+		print(f"Course: {course['name']}")
 		print(f"Date-Created: {announ['creationTime']}")
 		if announ['updateTime'] != announ['creationTime']:
 			print(f"Date-Updated: {announ['updateTime']}")
