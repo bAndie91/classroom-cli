@@ -37,11 +37,11 @@ for course in courses:
 		for material in announ.get('materials', []):
 			if 'driveFile' in material and 'driveFile' in material['driveFile']:
 				driveFile = material['driveFile']['driveFile']
-				print(f"Attachment: {driveFile['title']} <{driveFile['alternateLink']}>")
+				print(f"Attachment: {driveFile.get('title', '')} <{driveFile.get('alternateLink', '')}>")
 			elif 'link' in material:
 				link = material['link']
 				# f" thumbnail=<{link['thumbnailUrl']}>"
-				print(f"Attachment: {link['title']} <{link['url']}>")
+				print(f"Attachment: {link.get('title', '')} <{link.get('url', '')}>")
 			else:
 				print(f"Attachment-JSON: {json.dumps(material)}")
 		print()
