@@ -1,0 +1,4 @@
+This code when run as a Google Cloud application
+comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law;
+is not supposed to use by anyone other than its developer
+and those few beta-test users with whom the developer explicitely and personally agreed how, where, when, and for what purpose to use.

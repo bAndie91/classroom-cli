@@ -1,0 +1,3 @@
+This code does not leak any information or data of kind about its users,
+nor send any processed data to anywhere or anyone over computer network or on any open or hidden communication channel,
+other than its direct user and on the local computer environment as it runs on.
