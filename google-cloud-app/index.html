@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>classroom-cli — Google Classroom in your terminal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
+  :root {
+    --bg:       #0e1117;
+    --surface:  #161b25;
+    --border:   #252d3d;
+    --accent:   #4a9eff;
+    --accent2:  #2ecc8a;
+    --muted:    #8892a4;
+    --text:     #d4dce8;
+    --heading:  #eef2f8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    font-size: 15px;
+  }
+
+  /* ── scanline texture ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,.08) 3px,
+      rgba(0,0,0,.08) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── layout ── */
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── header / hero ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 64px 0 52px;
+  }
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg { width: 26px; height: 26px; }
+
+  .logo-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.45rem;
+    font-weight: 600;
+    color: var(--heading);
+    letter-spacing: -.5px;
+  }
+
+  .logo-name span { color: var(--accent); }
+
+  h1 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--heading);
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .tagline {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 560px;
+  }
+
+  /* ── nav tabs ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-top: 0;
+  }
+
+  .tabs a {
+    padding: 16px 26px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .82rem;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .2s, border-color .2s;
+  }
+
+  .tabs a:hover { color: var(--heading); text-decoration: none; }
+  .tabs a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── sections ── */
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent2);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--heading);
+    margin: 28px 0 10px;
+  }
+  h3:first-child { margin-top: 0; }
+
+  p { margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── permission table ── */
+  .perm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: .9rem;
+  }
+
+  .perm-table th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    color: var(--muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 0 12px 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .perm-table td {
+    padding: 11px 12px 11px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .perm-table tr:last-child td { border-bottom: none; }
+
+  .perm-table .scope {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .7rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+
+  .badge-read { background: rgba(74,158,255,.12); color: var(--accent); }
+  .badge-drive { background: rgba(46,204,138,.12); color: var(--accent2); }
+
+  /* ── callout box ── */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin: 24px 0;
+  }
+
+  .callout p { margin: 0; }
+
+  .callout-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--accent2);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  /* ── terminal snippet ── */
+  .terminal {
+    background: #090c12;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 20px 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .82rem;
+    color: #a8b8cc;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+
+  .terminal .prompt { color: var(--accent2); }
+  .terminal .cmd    { color: var(--heading); }
+  .terminal .out    { color: var(--muted); }
+
+  /* ── footer ── */
+  footer {
+    padding: 32px 0;
+    color: var(--muted);
+    font-size: .82rem;
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--muted); font-size: .82rem; }
+  .footer-links a:hover { color: var(--heading); }
+
+  /* ── update notice ── */
+  .update-notice {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .76rem;
+    color: var(--muted);
+    margin-bottom: 32px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .update-notice::before {
+    content: '📋';
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+</style>
+</head>
+<body style="transform-origin: left top 0px;" data-tc-id="w-0.597263667891392">
+
+<header>
+  <div class="wrap">
+    <div class="logo-line">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="20" height="14" rx="2" stroke="white" stroke-width="1.8" fill="none"></rect>
+          <path d="M8 21h8M12 17v4" stroke="white" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M6 8h2M6 12h12M10 8h8" stroke="white" stroke-width="1.5" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <span class="logo-name">classroom<span>-cli</span></span>
+    </div>
+    <h1>Google Classroom announcements,<br>right in your terminal.</h1>
+    <p class="tagline">A personal, local command-line tool that displays your Google Classroom assignments and announcements to you — privately, offline, and entirely under your control.</p>
+  </div>
+  <div class="wrap">
+    <nav class="tabs">
+      <a href="#about" class="active">About</a>
+      <a href="#permissions" class="">Permissions</a>
+      <a href="#privacy" class="">Privacy Policy</a>
+      <a href="#tos" class="">Terms of Use</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── ABOUT ── -->
+  <section id="about">
+    <div class="wrap">
+      <h2>About this application</h2>
+
+      <h3>What is classroom-cli?</h3>
+      <p>
+        <strong style="color:var(--heading)">classroom-cli</strong> is a personal, open-source command-line application
+        that lets the developer and a small circle of explicitly invited family members read their
+        Google Classroom course listings, announcements, coursework, materials, topics, rosters,
+        and student submissions — conveniently all from the terminal.
+      </p>
+      <p>
+        The application is not a commercial product and is not offered to the general public.
+        Access to the Google Cloud project is restricted to the developer and a handful of trusted
+        test users who were individually and personally invited and accepted.
+      </p>
+
+      <div class="terminal">
+        <div><span class="prompt">$</span> <span class="cmd">classroom-cli announcements --course "Math 9B"</span></div>
+        <div class="out"></div>
+        <div class="out">  [2024-11-14]  Homework due Friday — chapters 4–6</div>
+        <div class="out">  [2024-11-12]  Midterm results posted</div>
+        <div class="out">  [2024-11-08]  No class on Monday (national holiday)</div>
+        <div class="out"></div>
+        <div class="out">  3 announcements  ·  course id: 12345678</div>
+      </div>
+
+      <h3>How it works</h3>
+      <p>
+        The user launches classroom-cli manually from their own machine. The tool authenticates
+        once via Google's OAuth 2.0 flow and stores the resulting token locally. Subsequent runs
+        use the stored token to call Google Classroom APIs on the user's behalf, print the
+        requested information to the terminal, and exit. <strong style="color:var(--heading)">No
+        server, no cloud backend, no database.</strong>
+      </p>
+
+      <div class="callout">
+        <div class="callout-title">User control &amp; data flow</div>
+        <p>
+          classroom-cli always operates in a <strong>user-initiated and user-controlled</strong>
+          manner. It runs exclusively on the user's local machine. It does not transmit, forward,
+          store remotely, aggregate, or share any Google user data with any third party, server,
+          analytics service, or communication channel. The only network calls it ever makes are
+          directly to Google's own APIs on behalf of the authenticated user.
+        </p>
+      </div>
+
+      <h3>Intended audience</h3>
+      <p>
+        This application is intended solely for its developer and those few family members with
+        whom the developer has personally agreed on the conditions of use. It is not distributed
+        publicly, not listed in any app store, and not marketed to anyone else.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── PERMISSIONS ── -->
+  <section id="permissions">
+    <div class="wrap">
+      <h2>Permissions &amp; data access</h2>
+
+      <p>
+        classroom-cli requests the minimum set of Google API scopes necessary to read classroom
+        data on behalf of the authenticated user. All scopes are <em>read-only</em>. The
+        application never writes, modifies, or deletes any data in Google Classroom or Google
+        Drive.
+      </p>
+
+      <table class="perm-table">
+        <thead>
+          <tr>
+            <th style="width:48%">Scope</th>
+            <th style="width:35%">What it allows</th>
+            <th>Access</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="scope">classroom.courses.readonly</td>
+            <td>List courses the user is enrolled in</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.course-work.readonly</td>
+            <td>Read assignments and coursework items</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.courseworkmaterials.readonly</td>
+            <td>Read course material posts</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.student-submissions.me.readonly</td>
+            <td>Read the user's own submission status and grades</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.announcements.readonly</td>
+            <td>Read teacher announcements in enrolled courses</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.rosters.readonly</td>
+            <td>Read course membership lists</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">classroom.topics.readonly</td>
+            <td>Read topic labels within courses</td>
+            <td><span class="badge badge-read">read-only</span></td>
+          </tr>
+          <tr>
+            <td class="scope">drive.readonly</td>
+            <td>Read Drive files that are attached to classroom posts (e.g. linked documents, PDFs). Used solely to retrieve file metadata and content for display in the terminal.</td>
+            <td><span class="badge badge-drive">read-only</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout" style="margin-top:28px">
+        <div class="callout-title">Why drive.readonly?</div>
+        <p>Google Drive files – documents, slides, PDFs –&nbsp;are frequently attached to Classroom announcements and coursework. The <code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--accent)">drive.readonly</code>
+          scope allows classroom-cli to fetch those attachments so the user can read their content
+          inline in the terminal. The tool never downloads files to any location other than
+          temporary memory, never modifies Drive files, and never shares file contents with anyone
+          other than the user who initiated the command.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRIVACY POLICY ── -->
+  <section id="privacy">
+    <div class="wrap">
+      <h2>Privacy Policy</h2>
+
+      <div class="update-notice">
+        Last updated: 2025-06-03. Users will be notified of any material change to this policy via direct personal communication before the change takes effect.
+      </div>
+
+      <h3>1. Identity of the data controller</h3>
+      <p>
+        classroom-cli is a personal software project developed and maintained by its sole author
+        (hereafter "the developer"). It is not operated by a company or organisation. The
+        developer can be reached at the contact address associated with the Google Cloud project
+        that hosts this application.
+      </p>
+
+      <h3>2. Scope of this policy</h3>
+      <p>
+        This policy applies to all persons who authenticate with classroom-cli through Google
+        OAuth 2.0, including the developer and the small number of invited family members who
+        have been personally and explicitly granted access to the Google Cloud project.
+      </p>
+
+      <h3>3. Google user data accessed</h3>
+      <p>
+        When you authorise classroom-cli, it obtains an OAuth 2.0 access token and refresh token
+        from Google. Using this token it accesses the Google Classroom API and, where classroom
+        posts contain Drive attachments, the Google Drive API — strictly on your behalf and
+        strictly to fulfil the display request you issued.
+      </p>
+      <p>
+        The categories of data accessed are: course names and metadata, announcements, coursework
+        assignments, course materials, topic labels, course rosters, your own submission statuses,
+        and the content of Drive files linked within those classroom items.
+      </p>
+
+      <h3>4. How we use Google user data</h3>
+      <p>
+        Google user data obtained through the scopes listed above is used for exactly one purpose:
+        to format and display the requested information in the terminal window of the user who
+        issued the command. No other use is made of this data.
+      </p>
+
+      <h3>5. Data storage and retention</h3>
+      <p>
+        OAuth tokens are stored in a local file on the user's own machine (typically under their
+        home directory). No other Google user data is written to disk by classroom-cli; data
+        fetched from the API is held in process memory only for the duration of the command and
+        discarded immediately upon exit.
+      </p>
+      <p>
+        The developer does not have access to any OAuth tokens belonging to other users, nor to
+        any Google user data retrieved by their runs of the tool.
+      </p>
+
+      <h3>6. Data sharing and transmission</h3>
+      <p>
+        classroom-cli does not share, sell, rent, transmit, forward, upload, or in any other way
+        communicate Google user data to any third party, server, analytics service, database,
+        cloud backend, or communication channel — whether open or hidden. The sole network
+        communication the application initiates is direct HTTPS requests to Google's own API
+        endpoints (<code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--accent)">classroom.googleapis.com</code>,
+        <code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--accent)">www.googleapis.com</code>,
+        <code style="font-family:'IBM Plex Mono',monospace;font-size:.9em;color:var(--accent)">accounts.google.com</code>).
+      </p>
+
+      <h3>7. Compliance with Google API Services User Data Policy</h3>
+      <p>
+        classroom-cli's use and transfer of information received from Google APIs adheres to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>,
+        including the Limited Use requirements. Google user data is used only to provide the
+        functionality described in this document and is not used for advertising, profiling, or
+        any purpose unrelated to the stated function of the application.
+      </p>
+
+      <h3>8. Security</h3>
+      <p>
+        Because the application runs locally and retains no data beyond the user's own machine,
+        the primary security considerations are the protection of the OAuth token file (controlled
+        by the operating system's standard file permissions) and the security of the user's Google
+        account itself. Users are encouraged to revoke application access at any time via their
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions page</a>.
+      </p>
+
+      <h3>9. Children's privacy</h3>
+      <p>
+        classroom-cli is not directed at children and no special data categories are collected.
+        Access is limited to individually invited adults.
+      </p>
+
+      <h3>10. Changes to this policy</h3>
+      <p>
+        If the developer changes how classroom-cli accesses, uses, stores, or shares Google user
+        data, all affected users will be notified personally and directly — before the change is
+        deployed — so that they may review the new terms and choose whether to continue using the
+        application. The updated policy will also be reflected on this page with a revised "Last
+        updated" date.
+      </p>
+
+      <h3>11. Contact</h3>
+      <p>
+        Questions or requests regarding this privacy policy should be directed to the developer
+        through the contact method agreed upon at the time of being invited to use the
+        application.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── TERMS OF USE ── -->
+  <section id="tos">
+    <div class="wrap">
+      <h2>Terms of Use</h2>
+
+      <h3>1. Authorised users</h3><p>
+        Use of classroom-cli through this Google Cloud application is restricted exclusively to
+        its developer and those individuals with whom the developer has explicitly and personally
+        agreed — in advance — on the conditions, scope, and purpose of use. No other person is
+        authorised to authenticate with or use this application.
+      </p><h3>2. No warranty</h3>
+      <p>
+        This software is provided <strong style="color:var(--heading)">"as is"</strong>, without
+        warranty of any kind, express or implied, including but not limited to the warranties of
+        merchantability, fitness for a particular purpose, and non-infringement. To the extent
+        permitted by applicable law, the developer provides this application with
+        <strong style="color:var(--heading)">absolutely no warranty</strong>.
+      </p>
+
+      <h3>3. Limitation of liability</h3>
+      <p>
+        In no event shall the developer be liable for any claim, damages, or other liability
+        arising from the use of or inability to use this application.
+      </p>
+
+      <h3>4. Termination</h3>
+      <p>
+        The developer may revoke any user's access to the Google Cloud project at any time and
+        without prior notice. Users may also revoke the application's access to their Google
+        account at any time via their
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions page</a>.
+      </p>
+
+      <h3>5. Governing law</h3>
+      <p>
+        These terms are governed by the laws of Hungary, without regard to conflict-of-law
+        provisions.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-inner">
+      <span>classroom-cli — personal project © 2025-2026</span>
+      <nav class="footer-links">
+        <a href="#about">About</a>
+        <a href="#permissions">Permissions</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#tos">Terms of Use</a>
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Revoke access</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Highlight active nav tab on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('.tabs a');
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.tabs a[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  sections.forEach(s => obs.observe(s));
+</script>
+
+
+
+</body>
+</html>
